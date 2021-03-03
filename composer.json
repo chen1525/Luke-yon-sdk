@@ -1,5 +1,5 @@
 {
-    "name": "luke/yonbip-sdk",
+    "name": "chenmin/yonbip-sdk",
     "description": "禄可科技集团用友财务系统对接",
     "type": "library",
     "license": "Apache-2.0",
