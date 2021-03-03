@@ -2,6 +2,7 @@
     "name": "luke/yonbip-sdk",
     "description": "禄可科技集团用友财务系统对接",
     "type": "library",
+    "license": "Apache",
     "require": {
         "hanson/foundation-sdk": "^5.0"
     },
