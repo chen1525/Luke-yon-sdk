@@ -271,6 +271,7 @@ class Yon extends YonApi
                     'natSum' => $data['money'],
                     'balance' => $data['balance'],
                     'supplier' => $data['supplier'],
+                    'description' => $data['extra'],
                     "exchRate" => 1,
                     "currency" => "2088893397850624",
                     "currency_name" => "人民币",
