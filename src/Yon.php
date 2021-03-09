@@ -9,9 +9,9 @@ class Yon extends YonApi
 {
     /**
      * 客户组织单元
-     * @return array
+     * @return boolean|array
      */
-    public function getOrg()
+    public function getOrg($org_id = '')
     {
         $res = $this->request('POST', '/digitalModel/orgunit/querytree');
         $orgs[] = [
@@ -37,7 +37,13 @@ class Yon extends YonApi
                 "org_name" => $res['data'][0]['name'],
                 "_status" => "Insert"
             ];
+            if ($org_id && $org_id == $res['data'][0]['code']) {
+                return $res['data'][0]['id'];
+            }
             foreach ($res['data'][0]['children'] as $v) {
+                if ($org_id && $org_id == $v['code']) {
+                    return $v['id'];
+                }
                 $orgs[] = [
                     "hasDefaultInit" => true,
                     "rangeType" => 1,
@@ -52,6 +58,9 @@ class Yon extends YonApi
             }
         }
 
+        if ($org_id) {
+            return false;
+        }
         return $orgs;
     }
 
@@ -298,7 +307,76 @@ class Yon extends YonApi
     }
 
     /**
-     * 收款单
+     * 付款单修改
+     * @param array $data
+     * @return array
+     */
+    public function updatePayment($data)
+    {
+        $result = [
+            'code' => -1,
+            'message' => '连接失败',
+            'time' => time(),
+            'data' => []
+        ];
+        $yonId = explode(',', $data['yon_id']);
+        if (count($yonId) < 2) {
+            $result['message'] = "id参数错误";
+            return $result;
+        }
+        $supplier = $this->searchSupplier($data['user']['code']);
+        if (isset($supplier['data']['recordList'][0]['code']) && $supplier['data']['recordList'][0]['code'] == $this->supplierCode($data['user']['code'])) {
+            $data['supplier'] = $supplier['data']['recordList'][0]['id'];
+        } else {
+            $res = $this->setSupplier($data['user']);
+            if (isset($res['data']['id'])) {
+                $data['supplier'] = $res['data']['id'];
+            } else {
+                $result['message'] = isset($res['message']) ? $res['message'] : "用户插入失败";
+                return $result;
+            }
+        }
+
+
+        $options = [
+            'json' => [
+                'data' => [
+                    'id' => $yonId[0],
+                    'vouchdate' => date('Y-m-d H:i:s'),
+                    'accentity_code' => $data['org'],
+                    'exchangeRateType_code' => "01",
+                    'oriSum' => $data['money'],
+                    'natSum' => $data['money'],
+                    'supplier' => $data['supplier'],
+                    'description' => $data['extra'],
+                    "exchRate" => 1,
+                    "currency" => "2088893397850624",
+                    "currency_name" => "人民币",
+                    "currency_priceDigit" => "2",
+                    "currency_moneyDigit" => "2",
+                    "exchangeRateType" => "ghdglz4y",
+                    "exchangeRateType_digit" => "6",
+                    "tradetype" => "2088893315207425",
+                    "_status" => "Update",
+                    "PayBillb" => [
+                        [
+                            'id' => $yonId[1],
+                            "quickType_code" => $data['type'],
+                            "oriSum" => $data['money'],
+                            "natSum" => $data['money'],
+                            "_status" => "Update",
+                        ]
+                    ]
+                ]
+
+            ]
+        ];
+
+        return $this->request('POST', '/fi/payment/save', $options);
+    }
+
+    /**
+     * 收款单保存
      * @param array $data
      * @return array
      */
@@ -312,7 +390,7 @@ class Yon extends YonApi
         ];
         $user = $this->searchUser($data['user']['code']);
         if (isset($user['data']['recordList'][0]['code']) && $user['data']['recordList'][0]['code'] == $this->userCode($data['user']['code'])) {
-            $data['supplier'] = $user['data']['recordList'][0]['id'];
+            $data['customer'] = $user['data']['recordList'][0]['id'];
         } else {
             $res = $this->setUser($data['user']);
             if (isset($res['data']['id'])) {
@@ -357,6 +435,201 @@ class Yon extends YonApi
 
         return $this->request('POST', '/fi/receivebill/save', $options);
     }
+
+    /**
+     * 收款单修改
+     * @param array $data
+     * @return array
+     */
+    public function updateReceipt($data)
+    {
+        $result = [
+            'code' => -1,
+            'message' => '连接失败',
+            'time' => time(),
+            'data' => []
+        ];
+        $yonId = explode(',', $data['yon_id']);
+        if (count($yonId) < 2) {
+            $result['message'] = "id参数错误";
+            return $result;
+        }
+        $user = $this->searchUser($data['user']['code']);
+        if (isset($user['data']['recordList'][0]['code']) && $user['data']['recordList'][0]['code'] == $this->userCode($data['user']['code'])) {
+            $data['customer'] = $user['data']['recordList'][0]['id'];
+        } else {
+            $res = $this->setUser($data['user']);
+            if (isset($res['data']['id'])) {
+                $data['customer'] = $res['data']['id'];
+            } else {
+                $result['message'] = isset($res['message']) ? $res['message'] : "用户插入失败";
+                return $result;
+            }
+        }
+
+
+        $options = [
+            'json' => [
+                'data' => [
+                    'id' => $yonId[0],
+                    'customer' => $data['customer'],
+                    "customer_code" => $this->userCode($data['user']['code']),
+                    'accentity_code' => $data['org'],
+                    'vouchdate' => date('Y-m-d H:i:s'),
+                    "tradetype" => "2088893315207431",
+                    "exchangeRateType" => "ghdglz4y",
+                    'exchangeRateType_code' => "01",
+                    "exchRate" => 1,
+                    'oriSum' => $data['money'],
+                    'natSum' => $data['money'],
+                    "_status" => "Update",
+                    "currency" => "2088893397850624",
+                    "currency_name" => "人民币",
+                    "currency_priceDigit" => "2",
+                    "currency_moneyDigit" => "2",
+                    "ReceiveBill_b" => [
+                        [
+                            "id" => $yonId[1],
+                            "quickType" => "2088655373196158",
+                            "oriSum" => $data['money'],
+                            "natSum" => $data['money'],
+                            "_status" => "Update",
+                        ]
+                    ]
+                ]
+
+            ]
+        ];
+
+        if (isset($data['extra'])) {
+            $options['json']['data']['description'] = $data['extra'];
+        }
+
+        return $this->request('POST', '/fi/receivebill/save', $options);
+    }
+
+    /**
+     * 收款单退款
+     * @param array $data
+     * @return array
+     */
+    public function returnReceipt($data)
+    {
+        $result = [
+            'code' => -1,
+            'message' => '连接失败',
+            'time' => time(),
+            'data' => []
+        ];
+        $user = $this->searchUser($data['user']['code']);
+        if (isset($user['data']['recordList'][0]['code']) && $user['data']['recordList'][0]['code'] == $this->userCode($data['user']['code'])) {
+            $data['customer'] = $user['data']['recordList'][0]['id'];
+        } else {
+            $res = $this->setUser($data['user']);
+            if (isset($res['data']['id'])) {
+                $data['customer'] = $res['data']['id'];
+            } else {
+                $result['message'] = isset($res['message']) ? $res['message'] : "用户插入失败";
+                return $result;
+            }
+        }
+
+        $period = $this->getPeriod();
+        if (!$period) {
+            $result['message'] = "区间为空";
+            return $result;
+        }
+
+        $org = $this->getOrg($data['org']);
+        if (!$org) {
+            $result['message'] = "公司代码为空";
+            return $result;
+        }
+
+        $options = [
+            'json' => [
+                'data' => [
+                    "busiaccbook" => 2102831439895552,
+                    "exchangeRateType_code" => "01",
+                    "vouchdate" => date('Y-m-d H:i:s'),
+                    "code" => $data['code'],
+                    "accentity" => $org,
+                    //"accentity_code" => $data['org'],
+                    //"accentity_name" => "禄可科技集团有限公司",
+                    "oriSum" => $data['money'],
+                    "natSum" => $data['money'],
+                    //"balance" => 333,
+                    "customer" => $data['customer'],
+                    //"customer_code" => "U000951570",
+                    //"customer_name" => "陈敏11(18659125240)",
+                    "period" => $period,
+                    //"period_code" => date('Y-m'),
+                    "currency" => "2088893397850624",
+                    //"currency_name" => "人民币",
+                    "currency_priceDigit" => "2",
+                    "currency_moneyDigit" => "2",
+                    "natCurrency" => "2088893397850624",
+                    //"natCurrency_name" => "人民币",
+                    //"natCurrency_priceDigit" => "2",
+                    //"natCurrency_moneyDigit" => "2",
+                    "exchangeRateType" => "ghdglz4y",
+                    "exchangeRateType_name" => "基准汇率",
+                    "exchangeRateType_digit" => "6",
+                    "exchRate" => 1,
+                    "status" => 0,
+                    "tradetype" => "2088893315207425",
+                    //"tradetype_name" => "其他付款",
+                    //"tradetype_code" => "arap_payment_other",
+                    "srcitem" => 6,
+                    "billtype" => 9,
+                    "basebilltype_name" => "付款单",
+                    "caobject" => 1,
+                    "basebilltype" => "FICA2",
+                    "initflag" => false,
+                    "PayBillb" => [
+                        [
+                            "quickType" => 2088655373196158,
+                            //"quickType_name" => "应收款",
+                            //"quickType_code" => "2",
+                            "_status" => "Insert",
+                            "bookAmount" => 0,
+                            //"balance" => 333,
+                            "localbalance" => $data['money'],
+                            "natSum" => $data['money'],
+                            "oriSum" => $data['money'],
+                            "_tableDisplayOutlineAll" => false,
+                            "customer" => $data['customer'],
+                            //"customer_name" => "陈敏11(18659125240)"
+                        ]
+                    ],
+                    "_status" => "Insert"
+                ]
+
+            ]
+        ];
+
+        if (isset($data['extra'])) {
+            $options['json']['data']['description'] = $data['extra'];
+        }
+
+        return $this->request('POST', '/fi/paybill/save', $options);
+    }
+
+    //获取区间查询
+    public function getPeriod()
+    {
+       $all = $this->request('POST', '/fi/fipub/basedoc/querybd/accperiod');
+       if (isset($all['data'])) {
+           foreach ($all['data'] as $v) {
+               if ($v['code'] == date('Y-m')) {
+                   return $v['id'];
+               }
+           }
+       }
+
+       return false;
+    }
+
 
     //设置供应商code
     private function supplierCode($code)
