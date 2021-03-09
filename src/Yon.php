@@ -433,6 +433,10 @@ class Yon extends YonApi
             ]
         ];
 
+        if (isset($data['extra'])) {
+            $options['json']['data']['description'] = $data['extra'];
+        }
+
         return $this->request('POST', '/fi/receivebill/save', $options);
     }
 
