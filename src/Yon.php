@@ -619,6 +619,104 @@ class Yon extends YonApi
         return $this->request('POST', '/fi/paybill/save', $options);
     }
 
+    /**
+     * 收款单退款修改
+     * @param array $data
+     * @return array
+     */
+    public function updateReturnReceipt($data)
+    {
+        $result = [
+            'code' => -1,
+            'message' => '连接失败',
+            'time' => time(),
+            'data' => []
+        ];
+        $yonId = explode(',', $data['yon_id']);
+        if (count($yonId) < 2) {
+            $result['message'] = "id参数错误";
+            return $result;
+        }
+        $user = $this->searchUser($data['user']['code']);
+        if (isset($user['data']['recordList'][0]['code']) && $user['data']['recordList'][0]['code'] == $this->userCode($data['user']['code'])) {
+            $data['customer'] = $user['data']['recordList'][0]['id'];
+        } else {
+            $res = $this->setUser($data['user']);
+            if (isset($res['data']['id'])) {
+                $data['customer'] = $res['data']['id'];
+            } else {
+                $result['message'] = isset($res['message']) ? $res['message'] : "用户插入失败";
+                return $result;
+            }
+        }
+
+        $period = $this->getPeriod();
+        if (!$period) {
+            $result['message'] = "区间为空";
+            return $result;
+        }
+
+        $org = $this->getOrg($data['org']);
+        if (!$org) {
+            $result['message'] = "公司代码为空";
+            return $result;
+        }
+
+        $options = [
+            'json' => [
+                'data' => [
+                    "id" => $yonId[0],
+                    "code" => '12121212',
+                    "busiaccbook" => 2102831439895552,
+                    "exchangeRateType_code" => "01",
+                    "vouchdate" => date('Y-m-d H:i:s'),
+                    "accentity" => $org,
+                    "oriSum" => $data['money'],
+                    "natSum" => $data['money'],
+                    "customer" => $data['customer'],
+                    "period" => $period,
+                    "currency" => "2088893397850624",
+                    "currency_priceDigit" => "2",
+                    "currency_moneyDigit" => "2",
+                    "natCurrency" => "2088893397850624",
+                    "exchangeRateType" => "ghdglz4y",
+                    "exchangeRateType_name" => "基准汇率",
+                    "exchangeRateType_digit" => "6",
+                    "exchRate" => 1,
+                    "status" => 0,
+                    "tradetype" => "2088893315207425",
+                    "srcitem" => 6,
+                    "billtype" => 9,
+                    "basebilltype_name" => "付款单",
+                    "caobject" => 1,
+                    "basebilltype" => "FICA2",
+                    "initflag" => false,
+                    "PayBillb" => [
+                        [
+                            "id" => $yonId[1],
+                            "quickType" => 2088655373196158,
+                            "_status" => "Update",
+                            "bookAmount" => 0,
+                            "localbalance" => $data['money'],
+                            "natSum" => $data['money'],
+                            "oriSum" => $data['money'],
+                            "_tableDisplayOutlineAll" => false,
+                            "customer" => $data['customer'],
+                        ]
+                    ],
+                    "_status" => "Update"
+                ]
+
+            ]
+        ];
+
+        if (isset($data['extra'])) {
+            $options['json']['data']['description'] = $data['extra'];
+        }
+
+        return $this->request('POST', '/fi/paybill/save', $options);
+    }
+
     //获取区间查询
     public function getPeriod()
     {
