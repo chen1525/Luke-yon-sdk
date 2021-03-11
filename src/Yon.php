@@ -666,7 +666,7 @@ class Yon extends YonApi
             'json' => [
                 'data' => [
                     "id" => $yonId[0],
-                    "code" => '12121212',
+                    "code" => $data['code'],
                     "busiaccbook" => 2102831439895552,
                     "exchangeRateType_code" => "01",
                     "vouchdate" => date('Y-m-d H:i:s'),
