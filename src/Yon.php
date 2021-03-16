@@ -303,6 +303,10 @@ class Yon extends YonApi
             ]
         ];
 
+        if (isset($data['tradetype'])) {
+                  $options['json']['data']['tradetype'] = $data['tradetype'];
+        }
+
         return $this->request('POST', '/fi/payment/save', $options);
     }
 
@@ -372,6 +376,10 @@ class Yon extends YonApi
             ]
         ];
 
+        if (isset($data['tradetype'])) {
+            $options['json']['data']['tradetype'] = $data['tradetype'];
+        }
+
         return $this->request('POST', '/fi/payment/save', $options);
     }
 
@@ -432,6 +440,10 @@ class Yon extends YonApi
 
             ]
         ];
+
+        if (isset($data['tradetype'])) {
+            $options['json']['data']['tradetype'] = $data['tradetype'];
+        }
 
         if (isset($data['extra'])) {
             $options['json']['data']['description'] = $data['extra'];
@@ -504,6 +516,10 @@ class Yon extends YonApi
 
             ]
         ];
+
+        if (isset($data['tradetype'])) {
+            $options['json']['data']['tradetype'] = $data['tradetype'];
+        }
 
         if (isset($data['extra'])) {
             $options['json']['data']['description'] = $data['extra'];
@@ -582,8 +598,6 @@ class Yon extends YonApi
                     "exchRate" => 1,
                     "status" => 0,
                     "tradetype" => "2088893315207425",
-                    //"tradetype_name" => "其他付款",
-                    //"tradetype_code" => "arap_payment_other",
                     "srcitem" => 6,
                     "billtype" => 9,
                     "basebilltype_name" => "付款单",
@@ -611,6 +625,10 @@ class Yon extends YonApi
 
             ]
         ];
+
+        if (isset($data['tradetype'])) {
+            $options['json']['data']['tradetype'] = $data['tradetype'];
+        }
 
         if (isset($data['extra'])) {
             $options['json']['data']['description'] = $data['extra'];
@@ -710,6 +728,10 @@ class Yon extends YonApi
             ]
         ];
 
+        if (isset($data['tradetype'])) {
+            $options['json']['data']['tradetype'] = $data['tradetype'];
+        }
+
         if (isset($data['extra'])) {
             $options['json']['data']['description'] = $data['extra'];
         }
@@ -717,19 +739,42 @@ class Yon extends YonApi
         return $this->request('POST', '/fi/paybill/save', $options);
     }
 
+    public function getTranstype($path)
+    {
+        $options = [
+            'json' => [
+                'page' => [
+                    'pageIndex' => 1,
+                    'pageSize' => 20,
+                ],
+                'path' => $path
+            ]
+        ];
+        $types = [];
+        $res = $this->request('POST', '/digitalModel/transtype/list', $options);
+        if (isset($res['data']['recordList']) && count($res['data']['recordList']) > 0) {
+            foreach ($res['data']['recordList'] as $v) {
+                $types[$v['id']] = $v['name']['zh_CN'];
+            }
+            return $types;
+        } else {
+            return false;
+        }
+    }
+
     //获取区间查询
     public function getPeriod()
     {
-       $all = $this->request('POST', '/fi/fipub/basedoc/querybd/accperiod');
-       if (isset($all['data'])) {
-           foreach ($all['data'] as $v) {
-               if ($v['code'] == date('Y-m')) {
-                   return $v['id'];
-               }
-           }
-       }
+        $all = $this->request('POST', '/fi/fipub/basedoc/querybd/accperiod');
+        if (isset($all['data'])) {
+            foreach ($all['data'] as $v) {
+                if ($v['code'] == date('Y-m')) {
+                    return $v['id'];
+                }
+            }
+        }
 
-       return false;
+        return false;
     }
 
 
